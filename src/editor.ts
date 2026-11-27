@@ -8,6 +8,7 @@ import type {
   ElementConfig,
   HomeAssistant,
   VerticalAlign,
+  VolumeMode,
 } from './types';
 
 @customElement(EDITOR_TAG)
@@ -21,8 +22,9 @@ export class AndroidTvGridRemoteEditor extends LitElement {
   setConfig(config: AndroidTvGridRemoteConfig): void {
     this.config = {
       ...config,
-      columns: config.columns ?? 4,
+      columns: config.columns ?? 3,
       align: config.align ?? 'top',
+      volume_mode: config.volume_mode ?? 'auto',
       elements: config.elements ?? [],
       custom_buttons: config.custom_buttons ?? [],
     };
@@ -245,6 +247,22 @@ export class AndroidTvGridRemoteEditor extends LitElement {
               <option value="bottom">Bottom</option>
             </select>
           </div>
+        </div>
+
+        <div class="field">
+          <label>Volume Control Mode</label>
+          <select
+            .value=${this.config.volume_mode ?? 'auto'}
+            @change=${(e: Event) =>
+              this.updateRootField(
+                'volume_mode',
+                (e.target as HTMLSelectElement).value as VolumeMode,
+              )}
+          >
+            <option value="auto">Auto (Slider if supported, else Buttons)</option>
+            <option value="slider">Slider (Force)</option>
+            <option value="buttons">Buttons (Force - / +)</option>
+          </select>
         </div>
 
         <div class="row-2">

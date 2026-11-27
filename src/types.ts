@@ -44,6 +44,7 @@ export interface HomeAssistant {
 }
 
 export type VerticalAlign = 'top' | 'center' | 'bottom';
+export type VolumeMode = 'auto' | 'slider' | 'buttons';
 
 export interface ActionTarget {
   entity_id?: string | string[];
@@ -92,6 +93,7 @@ export interface AndroidTvGridRemoteConfig {
   volume_entity?: string;
   columns?: number;
   align?: VerticalAlign;
+  volume_mode?: VolumeMode;
   color?: string;
   background?: string;
   elements?: ElementConfig[];

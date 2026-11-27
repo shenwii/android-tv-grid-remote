@@ -1,12 +1,13 @@
 import { LitElement, css, html, nothing } from 'lit';
 import { customElement, property, state } from 'lit/decorators.js';
 import { MEDIA_PLAYER_FEATURES } from '../constants';
-import type { HassEntity, HomeAssistant } from '../types';
+import type { HassEntity, HomeAssistant, VolumeMode } from '../types';
 
 @customElement('atgr-volume-bar')
 export class AtgrVolumeBar extends LitElement {
   @property({ attribute: false }) hass?: HomeAssistant;
   @property({ type: String }) entityId = '';
+  @property({ type: String }) volumeMode: VolumeMode = 'auto';
 
   @state() private draggingValue: number | null = null;
 
@@ -112,7 +113,11 @@ export class AtgrVolumeBar extends LitElement {
       `;
     }
 
-    if (!this.supportsVolumeSet) {
+    const useButtons =
+      this.volumeMode === 'buttons' ||
+      (this.volumeMode === 'auto' && !this.supportsVolumeSet);
+
+    if (useButtons) {
       return html`
         <div class="volume-bar fallback">
           ${this.supportsMute

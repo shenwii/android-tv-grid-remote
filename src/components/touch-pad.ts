@@ -119,9 +119,17 @@ export class AtgrTouchPad extends LitElement {
     }
   };
 
+  private releaseCapture(e: PointerEvent): void {
+    const container = e.currentTarget as HTMLElement | null;
+    if (container?.hasPointerCapture?.(e.pointerId)) {
+      container.releasePointerCapture(e.pointerId);
+    }
+  }
+
   private onPointerUp = (e: PointerEvent): void => {
     if (this.pointerId !== e.pointerId) return;
     this.clearTimers();
+    this.releaseCapture(e);
 
     if (!this.swiped && !this.holdRepeated && this.pressedZone) {
       this.emitCommand(this.pressedZone);
@@ -133,6 +141,7 @@ export class AtgrTouchPad extends LitElement {
   private onPointerCancel = (e: PointerEvent): void => {
     if (this.pointerId !== e.pointerId) return;
     this.clearTimers();
+    this.releaseCapture(e);
     this.resetPointerState();
   };
 
@@ -154,6 +163,7 @@ export class AtgrTouchPad extends LitElement {
         @pointermove=${this.onPointerMove}
         @pointerup=${this.onPointerUp}
         @pointercancel=${this.onPointerCancel}
+        @lostpointercapture=${this.onPointerCancel}
       >
         <svg class="pad-ring" viewBox="0 0 200 200" aria-hidden="true">
           <!-- Outer base circle -->
@@ -257,8 +267,14 @@ export class AtgrTouchPad extends LitElement {
       transition: fill 0.12s ease;
     }
 
-    .sector:hover {
-      fill: rgba(128, 128, 128, 0.12);
+    @media (hover: hover) {
+      .sector:hover {
+        fill: rgba(128, 128, 128, 0.12);
+      }
+
+      .center-btn:hover {
+        filter: brightness(1.08);
+      }
     }
 
     .sector.active {
@@ -298,12 +314,7 @@ export class AtgrTouchPad extends LitElement {
       -webkit-tap-highlight-color: transparent;
     }
 
-    .center-btn:hover {
-      filter: brightness(1.08);
-    }
-
-    .center-btn.active,
-    .center-btn:active {
+    .center-btn.active {
       transform: scale(0.94);
       box-shadow:
         inset 0 2px 6px rgba(0, 0, 0, 0.35);

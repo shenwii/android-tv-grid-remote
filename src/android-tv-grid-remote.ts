@@ -60,7 +60,9 @@ export class AndroidTvGridRemote extends LitElement {
       entity: mediaEntity,
       columns: DEFAULT_CONFIG.columns,
       align: DEFAULT_CONFIG.align,
+      volume_mode: DEFAULT_CONFIG.volume_mode,
       elements: DEFAULT_CONFIG.elements,
+      custom_buttons: DEFAULT_CONFIG.custom_buttons,
     };
   }
 
@@ -72,8 +74,9 @@ export class AndroidTvGridRemote extends LitElement {
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
-      columns: Math.max(1, Math.round(config.columns ?? DEFAULT_CONFIG.columns ?? 4)),
+      columns: Math.max(1, Math.round(config.columns ?? DEFAULT_CONFIG.columns ?? 3)),
       align: config.align ?? DEFAULT_CONFIG.align ?? 'top',
+      volume_mode: config.volume_mode ?? DEFAULT_CONFIG.volume_mode ?? 'auto',
       elements: config.elements ?? DEFAULT_CONFIG.elements ?? [],
       custom_buttons: config.custom_buttons ?? [],
     };
@@ -233,8 +236,20 @@ export class AndroidTvGridRemote extends LitElement {
     const builtIn = BUILT_IN_ELEMENTS[el.id];
     const customBtn = customMap.get(el.id);
 
+    const powerState =
+      this.hass?.states[this.config?.remote_entity ?? '']?.state ??
+      this.hass?.states[this.config?.entity ?? '']?.state;
+    const isDeviceOn =
+      powerState === 'on' ||
+      powerState === 'playing' ||
+      powerState === 'paused' ||
+      powerState === 'idle' ||
+      powerState === 'buffering';
+    const powerAutoColor = el.id === 'power' ? (isDeviceOn ? '#22c55e' : '#ef4444') : undefined;
+
     const elColor =
       el.color ??
+      powerAutoColor ??
       customBtn?.color ??
       builtIn?.defaultColor ??
       this.config?.color ??
@@ -277,7 +292,11 @@ export class AndroidTvGridRemote extends LitElement {
       const volEntity = this.config?.volume_entity || this.config?.entity || '';
       return html`
         <div class="grid-item" style=${itemStyle}>
-          <atgr-volume-bar .hass=${this.hass} .entityId=${volEntity}></atgr-volume-bar>
+          <atgr-volume-bar
+            .hass=${this.hass}
+            .entityId=${volEntity}
+            .volumeMode=${this.config?.volume_mode ?? 'auto'}
+          ></atgr-volume-bar>
         </div>
       `;
     }
@@ -476,8 +495,10 @@ export class AndroidTvGridRemote extends LitElement {
       -webkit-tap-highlight-color: transparent;
     }
 
-    .circle-btn:hover {
-      filter: brightness(1.08);
+    @media (hover: hover) {
+      .circle-btn:hover {
+        filter: brightness(1.08);
+      }
     }
 
     .circle-btn:active {
@@ -485,22 +506,24 @@ export class AndroidTvGridRemote extends LitElement {
     }
 
     .circle-btn ha-icon {
-      --mdc-icon-size: 42%;
+      width: 56%;
+      height: 56%;
+      --mdc-icon-size: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
     }
 
     .atgr-img-icon {
-      width: 54%;
-      height: 54%;
+      width: 62%;
+      height: 62%;
       object-fit: contain;
       pointer-events: none;
     }
 
     .atgr-svg-icon {
-      width: 48%;
-      height: 48%;
+      width: 62%;
+      height: 62%;
       display: flex;
       align-items: center;
       justify-content: center;
