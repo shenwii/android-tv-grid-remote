@@ -142,4 +142,4 @@ npm run build
 
 ## 开源协议
 
-本项目基于 [MIT License](LICENSE) 开源。
+本项目基于 [GNU General Public License v3.0 (GPL-3.0)](LICENSE) 开源。

@@ -142,4 +142,4 @@ npm run build
 
 ## ライセンス
 
-このプロジェクトは [MIT License](LICENSE) の下で公開されています。
+このプロジェクトは [GNU General Public License v3.0 (GPL-3.0)](LICENSE) の下で公開されています。
