@@ -167,6 +167,33 @@ export class AndroidTvGridRemote extends LitElement {
     }
   }
 
+  private handleBuiltInPointerDown(id: string): void {
+    this.holdTriggered = false;
+    if (this.holdTimer !== null) {
+      window.clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+    }
+    const meta = BUILT_IN_ELEMENTS[id];
+    if (meta?.remoteCommand && this.hass && this.config) {
+      const remoteCmd = meta.remoteCommand;
+      this.holdTimer = window.setTimeout(() => {
+        this.holdTriggered = true;
+        if (this.hass && this.config) {
+          sendRemoteCommand(this.hass, this.config.remote_entity, remoteCmd, 0.5);
+        }
+      }, 450);
+    }
+  }
+
+  private handleBuiltInPointerUp(id: string): void {
+    if (this.holdTimer !== null) {
+      window.clearTimeout(this.holdTimer);
+      this.holdTimer = null;
+    }
+    if (this.holdTriggered) return;
+    this.handleBuiltInButtonClick(id);
+  }
+
   private handleCustomButtonPointerDown(btn: CustomButtonConfig): void {
     this.holdTriggered = false;
     if (this.holdTimer !== null) {
@@ -278,9 +305,14 @@ export class AndroidTvGridRemote extends LitElement {
       return html`
         <div class="grid-item" style=${itemStyle}>
           <atgr-touch-pad
-            @atgr-command=${(e: CustomEvent<{ command: string }>) => {
+            @atgr-command=${(e: CustomEvent<{ command: string; holdSecs?: number }>) => {
               if (this.hass && this.config) {
-                sendRemoteCommand(this.hass, this.config.remote_entity, e.detail.command);
+                sendRemoteCommand(
+                  this.hass,
+                  this.config.remote_entity,
+                  e.detail.command,
+                  e.detail.holdSecs,
+                );
               }
             }}
           ></atgr-touch-pad>
@@ -356,7 +388,15 @@ export class AndroidTvGridRemote extends LitElement {
             class="circle-btn"
             title=${builtIn.label}
             aria-label=${builtIn.label}
-            @click=${() => this.handleBuiltInButtonClick(el.id)}
+            @pointerdown=${(e: PointerEvent) => {
+              if (e.pointerType === 'mouse' && e.button !== 0) return;
+              this.handleBuiltInPointerDown(el.id);
+            }}
+            @pointerup=${(e: PointerEvent) => {
+              if (e.pointerType === 'mouse' && e.button !== 0) return;
+              this.handleBuiltInPointerUp(el.id);
+            }}
+            @pointercancel=${() => this.clearActionTimers()}
           >
             ${renderIcon(builtIn.icon)}
           </button>

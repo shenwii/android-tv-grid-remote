@@ -19,12 +19,17 @@ export async function sendRemoteCommand(
   hass: HomeAssistant,
   remoteEntity: string,
   command: string,
+  holdSecs?: number,
 ): Promise<void> {
   if (!remoteEntity) return;
+  const data: Record<string, unknown> = { command };
+  if (holdSecs !== undefined && holdSecs > 0) {
+    data.hold_secs = holdSecs;
+  }
   await hass.callService(
     'remote',
     'send_command',
-    { command },
+    data,
     { entity_id: remoteEntity },
   );
 }

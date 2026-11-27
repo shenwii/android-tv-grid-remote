@@ -12,8 +12,8 @@ const ZONE_COMMANDS: Record<PadZone, string> = {
 };
 
 const SWIPE_THRESHOLD_PX = 24;
-const HOLD_DELAY_MS = 400;
-const HOLD_INTERVAL_MS = 150;
+const HOLD_DELAY_MS = 450;
+const HOLD_COMMAND_SECS = 0.5;
 
 @customElement('atgr-touch-pad')
 export class AtgrTouchPad extends LitElement {
@@ -26,33 +26,28 @@ export class AtgrTouchPad extends LitElement {
   private startY = 0;
   private pressedZone: PadZone | null = null;
   private swiped = false;
-  private holdRepeated = false;
-  private holdDelayTimer: number | null = null;
-  private holdRepeatTimer: number | null = null;
+  private holdTriggered = false;
+  private holdTimer: number | null = null;
 
   disconnectedCallback(): void {
     super.disconnectedCallback();
-    this.clearTimers();
+    this.clearHoldTimer();
   }
 
-  private clearTimers(): void {
-    if (this.holdDelayTimer !== null) {
-      window.clearTimeout(this.holdDelayTimer);
-      this.holdDelayTimer = null;
-    }
-    if (this.holdRepeatTimer !== null) {
-      window.clearInterval(this.holdRepeatTimer);
-      this.holdRepeatTimer = null;
+  private clearHoldTimer(): void {
+    if (this.holdTimer !== null) {
+      window.clearTimeout(this.holdTimer);
+      this.holdTimer = null;
     }
   }
 
-  private emitCommand(zone: PadZone): void {
+  private emitCommand(zone: PadZone, holdSecs?: number): void {
     if (this.disabled) return;
     this.dispatchEvent(
       new CustomEvent('atgr-command', {
         bubbles: true,
         composed: true,
-        detail: { command: ZONE_COMMANDS[zone] },
+        detail: { command: ZONE_COMMANDS[zone], holdSecs },
       }),
     );
   }
@@ -68,7 +63,7 @@ export class AtgrTouchPad extends LitElement {
 
   private onPointerDown = (e: PointerEvent): void => {
     if (this.disabled || (e.pointerType === 'mouse' && e.button !== 0)) return;
-    this.clearTimers();
+    this.clearHoldTimer();
 
     const container = e.currentTarget as HTMLElement;
     container.setPointerCapture?.(e.pointerId);
@@ -77,22 +72,16 @@ export class AtgrTouchPad extends LitElement {
     this.startX = e.clientX;
     this.startY = e.clientY;
     this.swiped = false;
-    this.holdRepeated = false;
+    this.holdTriggered = false;
     this.pressedZone = this.detectZoneFromEvent(e);
     this.activeZone = this.pressedZone;
 
-    // Enable hold-to-repeat for directional zones
-    if (this.pressedZone !== 'center') {
-      const zone = this.pressedZone;
-      this.holdDelayTimer = window.setTimeout(() => {
-        if (this.swiped) return;
-        this.holdRepeated = true;
-        this.emitCommand(zone);
-        this.holdRepeatTimer = window.setInterval(() => {
-          this.emitCommand(zone);
-        }, HOLD_INTERVAL_MS);
-      }, HOLD_DELAY_MS);
-    }
+    const zone = this.pressedZone;
+    this.holdTimer = window.setTimeout(() => {
+      if (this.swiped) return;
+      this.holdTriggered = true;
+      this.emitCommand(zone, HOLD_COMMAND_SECS);
+    }, HOLD_DELAY_MS);
   };
 
   private onPointerMove = (e: PointerEvent): void => {
@@ -103,7 +92,7 @@ export class AtgrTouchPad extends LitElement {
 
     if (dist >= SWIPE_THRESHOLD_PX) {
       this.swiped = true;
-      this.clearTimers();
+      this.clearHoldTimer();
 
       const dir: PadZone =
         Math.abs(dx) > Math.abs(dy)
@@ -128,10 +117,10 @@ export class AtgrTouchPad extends LitElement {
 
   private onPointerUp = (e: PointerEvent): void => {
     if (this.pointerId !== e.pointerId) return;
-    this.clearTimers();
+    this.clearHoldTimer();
     this.releaseCapture(e);
 
-    if (!this.swiped && !this.holdRepeated && this.pressedZone) {
+    if (!this.swiped && !this.holdTriggered && this.pressedZone) {
       this.emitCommand(this.pressedZone);
     }
 
@@ -140,7 +129,7 @@ export class AtgrTouchPad extends LitElement {
 
   private onPointerCancel = (e: PointerEvent): void => {
     if (this.pointerId !== e.pointerId) return;
-    this.clearTimers();
+    this.clearHoldTimer();
     this.releaseCapture(e);
     this.resetPointerState();
   };
@@ -149,7 +138,7 @@ export class AtgrTouchPad extends LitElement {
     this.pointerId = null;
     this.pressedZone = null;
     this.swiped = false;
-    this.holdRepeated = false;
+    this.holdTriggered = false;
     this.activeZone = null;
   }
 
